@@ -1,47 +1,58 @@
-# NYC-Municipal-Data-Analysis-Forecasting
+# NYPD Shooting Incident Analysis: Relational Data Modeling & Predictive Analytics
 
-# Predictive Analysis of NYC Shooting Incidents: Temporal and Severity Modeling
+## 1. Project Overview
+This project presents a rigorous analysis of New York City’s historical shooting data to identify patterns in gun violence and assess the predictability of incident outcomes. Utilizing a relational database approach, the study investigates two primary domains:
+1.  **Temporal Dynamics**: Identifying if incident characteristics can predict the `TIME_OF_DAY`.
+2.  **Severity Assessment**: Developing a binary classifier to predict the probability of a fatal outcome (`STAT_MURDER_FLG`).
 
-## Project Overview
-This repository contains a comprehensive data science workflow analyzing the NYPD Shooting Incident Data (Historic). The project addresses two primary classification challenges: 
-1. **Temporal Prediction**: Classifying the time of day (Morning, Afternoon, Evening, Night, Late Night) based on incident characteristics.
-2. **Severity Prediction**: Developing a binary classifier to predict the lethality of an incident (`STAT_MURDER_FLG`).
+## 2. Data Engineering and Lineage
+The project utilizes the **NYPD Shooting Incident Data (Historic)**. To ensure a comprehensive feature set for machine learning, a relational integration strategy was employed across three primary source entities:
 
-## Dataset and Data Engineering
-The analysis is based on a refined dataset of approximately 23,000 records derived from the NYC Open Data portal.
+* **Source Entities**:
+    * **Shootings (Transaction Table)**: Contains the unique `INCIDENT_KEY`, location-based data (Borough, Precinct), and coordinate data.
+    * **Shootings_Offenders**: Detailed demographic and descriptive profiles of the suspected perpetrators.
+    * **Shootings_Victims**: Detailed victim demographics and the definitive binary flag for mortality (`STAT_MURDER_FLG`).
+* **ETL & Join Logic**: An **Inner Join** was utilized across these three tables to create a "Gold Standard" analytical dataset. While the raw shooting data comprised ~35,000 records, this strategy yielded **23,000 high-fidelity rows** containing verified data across all dimensions (Location, Victim, and Offender).
 
-### Data Integration and Cleaning
-* **Join Logic**: Data was integrated from three source tables (Incidents, Victims, and Location). An inner join was utilized to ensure data integrity across all features, resulting in 23,000 high-fidelity rows.
-* **Handling Missing Values**: Categorical nulls were audited; features like Victim Sex and Race showed significant skews (e.g., 26,126 Males vs 2,610 Females).
-* **Feature Engineering**: 
-    * Raw timestamps were binned into five categorical time slots.
-    * `pd.get_dummies` with `drop_first=True` was implemented for categorical encoding to prevent multicollinearity in linear models.
 
-## Predictive Modeling and Evaluation
 
-### Phase 1: Temporal Classification
-Both **Multinomial Logistic Regression** and **Random Forest** models were evaluated.
-* **Accuracy Baseline**: Both models converged at approximately 35-36% accuracy.
-* **Diagnostic**: Confusion matrix analysis revealed a heavy bias toward "Late Night" predictions. This stems from class imbalance where the model defaults to the majority class to maximize global accuracy.
+## 3. Data Dictionary and Feature Selection
+Data was curated based on official NYPD specifications to ensure domain accuracy:
 
-### Phase 2: Severity Classification (Fatal vs. Non-Fatal)
-Given the 5:1 imbalance (23,966 Non-Fatal vs 4,781 Fatal), standard accuracy was discarded as a success metric in favor of **Recall** and **F1-Score**.
-* **Model**: Random Forest Classifier with `class_weight='balanced'`.
-* **Result**: Achieved 56.99% accuracy.
-* **Trade-off Analysis**: By balancing the model, we achieved a 0.56 Recall for fatalities. While this lowered overall precision (0.23), it significantly reduced False Negatives, which is critical in public safety modeling.
+| Feature | Type | Description |
+| :--- | :--- | :--- |
+| `BORO` | Categorical | Borough where the incident occurred (BRONX, BROOKLYN, etc.) |
+| `VIC_AGE_GROUP` | Categorical | Specific age bin of the victim at the time of the incident |
+| `STAT_MURDER_FLG` | Binary | Target variable: Indicates if the shooting resulted in a fatality |
+| `PRECINCT` | Numerical | Specific NYPD Precinct of occurrence |
 
-## Key Visualizations
-* **Geospatial Scatter Plots**: Visualizing incidents by Latitude and Longitude to identify high-density clusters.
-* **Confusion Matrices**: Used to diagnose model "laziness" and class bias.
-* **Feature Importance**: Identifying which demographic or geographic variables most heavily influence the model's decision-making process.
+## 4. Machine Learning Methodology
 
-## Technical Environment
-* **Language**: Python 3.13
-* **Libraries**: `pandas`, `scikit-learn`, `seaborn`, `matplotlib`
-* **Tools**: Jupyter Notebook, Anaconda Distribution
+### Phase I: Temporal Prediction (Multiclass)
+**Objective**: Predict the categorical `TIME_OF_DAY` (Morning, Afternoon, Evening, Night, Late Night).
+* **Models Evaluated**: Multinomial Logistic Regression and Random Forest Classifier.
+* **Key Findings**: Accuracy reached a baseline of **35.88%**. Analysis of the confusion matrix indicated that the model developed a bias toward the "Late Night" class, which significantly outnumbered other categories, representing a classic class imbalance challenge.
 
-## Future Improvements
-* **Synthetic Over-sampling**: Applying SMOTE to the training set to increase the signal of minority classes (Morning shootings and Fatalities).
-* **Hyperparameter Optimization**: Implementing `GridSearchCV` to tune `n_estimators` beyond the current baseline of 200.
-* **Recovery of Dropped Records**: Re-evaluating the join strategy (Left Join) to recover the 12,000 records lost during initial data integration.
+### Phase II: Severity Prediction (Binary)
+**Objective**: Predict whether an incident results in death (`STAT_MURDER_FLG`).
+* **Imbalance Handling**: The dataset exhibited a 5:1 ratio of non-fatal to fatal incidents.
+* **Model Optimization**: Implemented a **Random Forest Classifier** with `class_weight='balanced'`. 
+* **Results**: Achieved an **Accuracy of 56.99%**.
+* **Performance Insight**: By prioritizing **Recall (0.56)** over pure Accuracy, the model was tuned to minimize False Negatives—ensuring that fatal incidents are detected even at the cost of higher False Positives.
 
+
+
+## 5. Model Interpretability and Feature Importance
+Using Random Forest's Gini Importance, the model identified that **Borough** and **Victim Age** are stronger indicators of incident severity than the specific time of occurrence. This suggests that socioeconomic and geographic factors carry more predictive weight in lethality than temporal environmental factors.
+
+## 6. Technical Stack
+* **Environment**: Python 3.x, Jupyter Notebook.
+* **Libraries**: `pandas`, `scikit-learn`, `seaborn`, `matplotlib`.
+* **Standards**: NYPD Open Data Governance Standards.
+
+## 7. Future Work and Optimization
+* **Resampling**: Implementing **SMOTE** (Synthetic Minority Over-sampling Technique) to address the minority class scarcity in "Morning" shootings.
+* **Feature Expansion**: Re-evaluating the join strategy to recover the 12,000 records lost during the inner join through a **Left Join** strategy with missing-value imputation.
+
+---
+**Author**: Mohit Acharya
